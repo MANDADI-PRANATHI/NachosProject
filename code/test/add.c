@@ -11,12 +11,13 @@ int main() {
     int result;
     int i,j;
 
-    for(i=0;i<1000;i++){
+    for(i=0;i<10;i++){
         for(j=0;j<200000;j++);
             PrintString("In child\n");
         
     }
 
-    Halt();
+    //Halt();
+    return 0;
     /* not reached */
 }

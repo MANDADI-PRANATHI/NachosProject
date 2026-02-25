@@ -12,7 +12,7 @@
 #include "copyright.h"
 #include "list.h"
 #include "thread.h"
-
+#include <queue>
 // The following class defines the scheduler/dispatcher abstraction --
 // the data structures and operations needed to keep track of which
 // thread is running, and which threads are ready but not running.
@@ -23,6 +23,8 @@ class Scheduler {
     ~Scheduler();  // De-allocate ready list
 
     void ReadyToRun(Thread* thread);
+    Thread* PeekNextToRun();
+
     // Thread can be dispatched.
     Thread* FindNextToRun();  // Dequeue first thread on the ready
                               // list, if any, and return thread.
@@ -35,7 +37,7 @@ class Scheduler {
     // SelfTest for scheduler is implemented in class Thread
 
    private:
-    List<Thread*>* readyList;  // queue of threads that are ready to run,
+    SortedList<Thread*>* readyList;  // queue of threads that are ready to run,
                                // but not running
     Thread* toBeDestroyed;     // finishing thread to be destroyed
                                // by the next thread that runs

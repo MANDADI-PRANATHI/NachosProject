@@ -15,10 +15,12 @@
 // Copyright (c) 1992-1996 The Regents of the University of California.
 // All rights reserved.  See copyright.h for copyright notice and limitation
 // of liability and disclaimer of warranty provisions.
-
+#include <stdint.h>
+#include <string.h>
 #include "copyright.h"
 #include "thread.h"
 #include "switch.h"
+#include <ctime>
 #include "synch.h"
 #include "sysdep.h"
 
@@ -38,6 +40,9 @@ Thread::Thread(char *threadName, bool _has_dynamic_name /*=false*/) {
     name = threadName;
     stackTop = NULL;
     stack = NULL;
+    priority = rand()%10 ;  
+    printf("Priority of %s is %d\n",name,priority);
+
     status = JUST_CREATED;
     for (int i = 0; i < MachineStateSize; i++) {
         machineState[i] = NULL;  // not strictly necessary, since
@@ -200,11 +205,13 @@ void Thread::Yield() {
 
     DEBUG(dbgThread, "Yielding thread: " << name);
 
-    nextThread = kernel->scheduler->FindNextToRun();
-    if (nextThread != NULL) {
+    nextThread = kernel->scheduler->PeekNextToRun();
+    if (nextThread != NULL && nextThread->priority > this->priority) {
         kernel->scheduler->ReadyToRun(this);
+        nextThread = kernel->scheduler->FindNextToRun();
         kernel->scheduler->Run(nextThread, FALSE);
-    }
+     }
+
     (void)kernel->interrupt->SetLevel(oldLevel);
 }
 

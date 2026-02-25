@@ -3,6 +3,7 @@
 
 PCB::PCB(int id) {
     this->processID = kernel->currentThread->processID;
+    this->priority = id%10;
     joinsem = new Semaphore("joinsem", 0);
     exitsem = new Semaphore("exitsem", 0);
     multex = new Semaphore("multex", 1);

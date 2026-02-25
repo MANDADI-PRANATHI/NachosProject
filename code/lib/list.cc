@@ -136,7 +136,7 @@ T List<T>::RemoveFront() {
 //----------------------------------------------------------------------
 
 template <class T>
-void List<T>::Remove(T item) {
+T List<T>::Remove(T item) {
     ListElement<T> *prev, *ptr;
     T removed;
 
@@ -162,6 +162,7 @@ void List<T>::Remove(T item) {
         ASSERT(ptr != NULL);  // should always find item!
     }
     ASSERT(!IsInList(item));
+    return item;
 }
 
 //----------------------------------------------------------------------

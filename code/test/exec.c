@@ -7,15 +7,15 @@
 #define stdout 1
 
 int main() {
-    int pid;
+    int pid,pid2;
     int i,j;
-    PrintString("In parent\n");
     pid = Exec("../test/add");
+    pid2 = Exec("../test/add2");
     if (pid < 0) {
         Write("Exec failed: ", 14, stdout);
         PrintNum(pid);
     } else{
-         for(i=0;i<1000;i++)
+         for(i=0;i<10;i++)
          {
                  for(j=0;j<200000;j++);
                  PrintString("In Parent\n");
@@ -23,4 +23,5 @@ int main() {
     }
 
         Join(pid);
+        Join(pid2);
 }

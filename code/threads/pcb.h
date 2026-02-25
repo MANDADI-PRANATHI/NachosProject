@@ -16,6 +16,7 @@ class PCB {
    public:
     int parentID;
     int processID;
+    int priority;
     PCB();
     PCB(int id);
     ~PCB();

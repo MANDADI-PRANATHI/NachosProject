@@ -40,6 +40,8 @@
 #define MAIN
 #include "copyright.h"
 #undef MAIN
+#include <stdlib.h>
+#include <time.h>
 
 #include "main.h"
 #include "filesys.h"
@@ -156,6 +158,7 @@ void Print(char *name) {
 
 int main(int argc, char **argv) {
     int i;
+    srand(time(NULL));
     char *debugArg = "";
     char *userProgName = NULL;  // default is not to execute a user prog
     bool threadTestFlag = false;
