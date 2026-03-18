@@ -478,6 +478,13 @@ void ExceptionHandler(ExceptionType which) {
                     return handle_SC_Signal();
                 case SC_GetPid:
                     return handle_SC_GetPid();
+                case SC_Sleep:
+                {
+                    int time = kernel->machine->ReadRegister(4);
+                    kernel->alarm->WaitUntil(time);
+                    return move_program_counter();
+                }
+
                 /**
                  * Handle all not implemented syscalls
                  * If you want to write a new handler for syscall:

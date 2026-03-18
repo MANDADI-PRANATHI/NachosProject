@@ -1,0 +1,236 @@
+diff --git a/code/build.linux/Makefile.dep b/code/build.linux/Makefile.dep
+index dab88e2..f82e701 100644
+--- a/code/build.linux/Makefile.dep
++++ b/code/build.linux/Makefile.dep
+@@ -2157,8 +2157,8 @@ disk.o: ../machine/disk.cc /usr/include/stdc-predef.h ../lib/copyright.h \
+  ../threads/pcb.h
+ alarm.o: ../threads/alarm.cc /usr/include/stdc-predef.h \
+  ../lib/copyright.h ../threads/alarm.h ../lib/utility.h \
+- ../machine/callback.h ../machine/timer.h ../threads/main.h \
+- ../lib/debug.h ../lib/sysdep.h /usr/include/c++/13/iostream \
++ ../machine/callback.h ../machine/timer.h ../threads/thread.h \
++ ../lib/sysdep.h /usr/include/c++/13/iostream \
+  /usr/include/c++/13/bits/requires_hosted.h \
+  /usr/include/x86_64-linux-gnu/c++/13/bits/c++config.h \
+  /usr/include/x86_64-linux-gnu/c++/13/bits/os_defines.h \
+@@ -2308,12 +2308,12 @@ alarm.o: ../threads/alarm.cc /usr/include/stdc-predef.h \
+  /usr/include/c++/13/bits/basic_ios.tcc \
+  /usr/include/c++/13/bits/ostream.tcc /usr/include/c++/13/istream \
+  /usr/include/c++/13/bits/istream.tcc /usr/include/c++/13/stdlib.h \
+- /usr/include/string.h /usr/include/strings.h ../threads/kernel.h \
+- ../threads/thread.h ../machine/machine.h ../machine/translate.h \
+- ../userprog/addrspace.h ../filesys/filesys.h ../filesys/openfile.h \
+- ../filesys/filetable.h ../threads/scheduler.h ../lib/list.h \
+- ../lib/list.cc /usr/include/c++/13/queue /usr/include/c++/13/deque \
+- /usr/include/c++/13/bits/stl_uninitialized.h \
++ /usr/include/string.h /usr/include/strings.h ../machine/machine.h \
++ ../machine/translate.h ../userprog/addrspace.h ../filesys/filesys.h \
++ ../filesys/openfile.h ../filesys/filetable.h ../lib/list.h \
++ ../lib/debug.h ../lib/list.cc ../threads/main.h ../threads/kernel.h \
++ ../threads/scheduler.h /usr/include/c++/13/queue \
++ /usr/include/c++/13/deque /usr/include/c++/13/bits/stl_uninitialized.h \
+  /usr/include/c++/13/bits/stl_deque.h /usr/include/c++/13/bits/deque.tcc \
+  /usr/include/c++/13/vector /usr/include/c++/13/bits/stl_vector.h \
+  /usr/include/c++/13/bits/stl_bvector.h \
+diff --git a/code/test/Makefile b/code/test/Makefile
+index c000c64..ccec703 100644
+--- a/code/test/Makefile
++++ b/code/test/Makefile
+@@ -112,7 +112,7 @@ ifeq ($(hosttype),unknown)
+ PROGRAMS = unknownhost
+ else
+ # change this if you create a new test program!
+-PROGRAMS =add2 abs add halt shell matmult sort segments test_syscall num_io char_io random str_io ascii bubblesort help create_file open_file readwrite exec test_sem sinhvien voinuoc main
++PROGRAMS =sleepTest add2 abs add halt shell matmult sort segments test_syscall num_io char_io random str_io ascii bubblesort help create_file open_file readwrite exec test_sem sinhvien voinuoc main
+ endif
+ 
+ all: $(PROGRAMS)
+@@ -132,7 +132,12 @@ add.o: add.c
+ add: add.o start.o
+ 	$(LD) $(LDFLAGS) start.o add.o -o add.coff
+ 	$(COFF2NOFF) add.coff add
++sleepTest.o: sleepTest.c
++	$(CC) $(CFLAGS) -c sleepTest.c
+ 
++sleepTest: sleepTest.o start.o
++	$(LD) $(LDFLAGS) start.o sleepTest.o -o sleepTest.coff
++	$(COFF2NOFF) sleepTest.coff sleepTest
+ add2.o: add2.c
+ 	$(CC) $(CFLAGS) -c add2.c
+ 
+diff --git a/code/test/add2.c b/code/test/add2.c
+index 81d23de..872bb3a 100644
+--- a/code/test/add2.c
++++ b/code/test/add2.c
+@@ -10,6 +10,9 @@
+ int main() {
+     int result;
+     int i,j;
++      PrintString("Going to sleep for 5\n");
++       Sleep(5000000);
++           PrintString("Woke up after 5\n");
+ 
+     for(i=0;i<10;i++){
+         for(j=0;j<200000;j++);
+@@ -17,6 +20,7 @@ int main() {
+         
+     }
+ 
++
+     //Halt();
+     return 0;
+     /* not reached */
+diff --git a/code/test/exec.c b/code/test/exec.c
+index a7ca612..3740727 100644
+--- a/code/test/exec.c
++++ b/code/test/exec.c
+@@ -7,10 +7,11 @@
+ #define stdout 1
+ 
+ int main() {
+-    int pid,pid2;
++    int pid,pid2,pid3;
+     int i,j;
+     pid = Exec("../test/add");
+     pid2 = Exec("../test/add2");
++    //pid3=Exec("../test/sleepTest");
+     if (pid < 0) {
+         Write("Exec failed: ", 14, stdout);
+         PrintNum(pid);
+@@ -24,4 +25,5 @@ int main() {
+ 
+         Join(pid);
+         Join(pid2);
++        //Join(pid3);
+ }
+diff --git a/code/threads/alarm.cc b/code/threads/alarm.cc
+index ce30385..d0390a6 100644
+--- a/code/threads/alarm.cc
++++ b/code/threads/alarm.cc
+@@ -20,7 +20,7 @@
+ //		occur at random, instead of fixed, intervals.
+ //----------------------------------------------------------------------
+ 
+-Alarm::Alarm(bool doRandom) { timer = new Timer(doRandom, this); }
++Alarm::Alarm(bool doRandom) { timer = new Timer(doRandom, this); sleepList = new List<SleepEntry*>;}
+ 
+ //----------------------------------------------------------------------
+ // Alarm::CallBack
+@@ -43,8 +43,32 @@ Alarm::Alarm(bool doRandom) { timer = new Timer(doRandom, this); }
+ void Alarm::CallBack() {
+     Interrupt *interrupt = kernel->interrupt;
+     MachineStatus status = interrupt->getStatus();
++    int currentTime = kernel->stats->totalTicks;
++    ListIterator<SleepEntry*> it(sleepList);
++    //printf("Timer tick %d\n", currentTime);
++    while (!it.IsDone()) {
++        SleepEntry *entry = it.Item();
++        it.Next();
++        if(entry->wakeTime <= currentTime){
++            sleepList->Remove(entry);
++            kernel->scheduler->ReadyToRun(entry->thread);
++            //printf("Timer tick %d\n", kernel->stats->totalTicks);
++        }
++    
++    }
++
+ 
+     if (status != IdleMode) {
+         interrupt->YieldOnReturn();
+     }
+ }
++
++void Alarm::WaitUntil(int x) {
++       IntStatus oldLevel = kernel->interrupt->SetLevel(IntOff);
++       int wakeTime = kernel->stats->totalTicks + x;
++       SleepEntry * entry = new SleepEntry(kernel->currentThread, wakeTime);
++       sleepList->Append(entry);
++       kernel->currentThread->Sleep(false);
++       kernel->interrupt->SetLevel(oldLevel);
++}
++
+diff --git a/code/threads/alarm.h b/code/threads/alarm.h
+index af6dd02..a8a599f 100644
+--- a/code/threads/alarm.h
++++ b/code/threads/alarm.h
+@@ -21,6 +21,21 @@
+ #include "utility.h"
+ #include "callback.h"
+ #include "timer.h"
++#include "thread.h"
++#include "list.h"
++
++class SleepEntry {
++public:
++    Thread *thread;
++    int wakeTime;
++
++    SleepEntry(Thread *t, int time) {
++         thread = t;
++         wakeTime = time;
++    }
++};
++
++
+ 
+ // The following class defines a software alarm clock.
+ class Alarm : public CallBackObj {
+@@ -34,6 +49,7 @@ class Alarm : public CallBackObj {
+ 
+    private:
+     Timer *timer;  // the hardware timer device
++    List<SleepEntry*> *sleepList;
+ 
+     void CallBack();  // called when the hardware
+                       // timer generates an interrupt
+diff --git a/code/threads/main.cc b/code/threads/main.cc
+index cb0ea76..d85df82 100644
+--- a/code/threads/main.cc
++++ b/code/threads/main.cc
+@@ -42,6 +42,8 @@
+ #undef MAIN
+ #include <stdlib.h>
+ #include <time.h>
++#include <stdlib.h>
++#include <time.h>
+ 
+ #include "main.h"
+ #include "filesys.h"
+diff --git a/code/userprog/exception.cc b/code/userprog/exception.cc
+index 9f01f93..7e8baae 100644
+--- a/code/userprog/exception.cc
++++ b/code/userprog/exception.cc
+@@ -478,6 +478,13 @@ void ExceptionHandler(ExceptionType which) {
+                     return handle_SC_Signal();
+                 case SC_GetPid:
+                     return handle_SC_GetPid();
++                case SC_Sleep:
++                {
++                    int time = kernel->machine->ReadRegister(4);
++                    kernel->alarm->WaitUntil(time);
++                    return move_program_counter();
++                }
++
+                 /**
+                  * Handle all not implemented syscalls
+                  * If you want to write a new handler for syscall:
+diff --git a/code/userprog/syscall.h b/code/userprog/syscall.h
+index 3e9af4e..e976682 100644
+--- a/code/userprog/syscall.h
++++ b/code/userprog/syscall.h
+@@ -49,6 +49,7 @@
+ #define SC_Signal 53
+ #define SC_GetPid 54
+ #define SC_Abs 55
++#define SC_Sleep 56
+ #ifndef IN_ASM
+ 
+ /* The system call interface.  These are the operations the Nachos
+@@ -71,6 +72,7 @@ void Halt();
+ int Add(int op1, int op2);
+ int Abs(int op1);
+ int ReadNum();
++void Sleep(int time);
+ 
+ void PrintNum(int num);
+ 

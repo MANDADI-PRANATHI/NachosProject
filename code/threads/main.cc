@@ -42,6 +42,8 @@
 #undef MAIN
 #include <stdlib.h>
 #include <time.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "main.h"
 #include "filesys.h"

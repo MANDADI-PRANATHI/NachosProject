@@ -10,12 +10,16 @@
 int main() {
     int result;
     int i,j;
+      PrintString("Going to sleep for 5\n");
+       Sleep(5000000);
+           PrintString("Woke up after 5\n");
 
     for(i=0;i<10;i++){
         for(j=0;j<200000;j++);
             PrintString("In child2\n");
         
     }
+
 
     //Halt();
     return 0;

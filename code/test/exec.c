@@ -7,10 +7,11 @@
 #define stdout 1
 
 int main() {
-    int pid,pid2;
+    int pid,pid2,pid3;
     int i,j;
     pid = Exec("../test/add");
     pid2 = Exec("../test/add2");
+    //pid3=Exec("../test/sleepTest");
     if (pid < 0) {
         Write("Exec failed: ", 14, stdout);
         PrintNum(pid);
@@ -24,4 +25,5 @@ int main() {
 
         Join(pid);
         Join(pid2);
+        //Join(pid3);
 }

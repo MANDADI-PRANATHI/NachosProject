@@ -20,7 +20,7 @@
 //		occur at random, instead of fixed, intervals.
 //----------------------------------------------------------------------
 
-Alarm::Alarm(bool doRandom) { timer = new Timer(doRandom, this); }
+Alarm::Alarm(bool doRandom) { timer = new Timer(doRandom, this); sleepList = new List<SleepEntry*>;}
 
 //----------------------------------------------------------------------
 // Alarm::CallBack
@@ -43,8 +43,32 @@ Alarm::Alarm(bool doRandom) { timer = new Timer(doRandom, this); }
 void Alarm::CallBack() {
     Interrupt *interrupt = kernel->interrupt;
     MachineStatus status = interrupt->getStatus();
+    int currentTime = kernel->stats->totalTicks;
+    ListIterator<SleepEntry*> it(sleepList);
+    //printf("Timer tick %d\n", currentTime);
+    while (!it.IsDone()) {
+        SleepEntry *entry = it.Item();
+        it.Next();
+        if(entry->wakeTime <= currentTime){
+            sleepList->Remove(entry);
+            kernel->scheduler->ReadyToRun(entry->thread);
+            //printf("Timer tick %d\n", kernel->stats->totalTicks);
+        }
+    
+    }
+
 
     if (status != IdleMode) {
         interrupt->YieldOnReturn();
     }
 }
+
+void Alarm::WaitUntil(int x) {
+       IntStatus oldLevel = kernel->interrupt->SetLevel(IntOff);
+       int wakeTime = kernel->stats->totalTicks + x;
+       SleepEntry * entry = new SleepEntry(kernel->currentThread, wakeTime);
+       sleepList->Append(entry);
+       kernel->currentThread->Sleep(false);
+       kernel->interrupt->SetLevel(oldLevel);
+}
+
