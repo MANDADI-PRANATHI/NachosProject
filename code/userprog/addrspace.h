@@ -31,7 +31,11 @@ class AddrSpace {
 
     void SaveState();     // Save/restore address space-specific
     void RestoreState();  // info on a context switch
-
+    int NumPages() const;
+    TranslationEntry *GetPageTable();
+    TranslationEntry *FindPTE(int vpn);
+    void SaveTLBState();
+    void ClearTLB();
     // Translate virtual address _vaddr_
     // to physical address _paddr_. _mode_
     // is 0 for Read, 1 for Write.

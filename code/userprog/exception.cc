@@ -57,6 +57,13 @@
  * blank to convert all characters of user string
  * @return char*
  */
+
+
+static int nextTLBSlot = 0;
+int gTLBMissCount = 0;
+int gTLBReplaceCount = 0;
+int gTLBInvalidFillCount = 0;
+int gTLBSaveBackCount = 0;
 char* stringUser2System(int addr, int convert_length = -1) {
     int length = 0;
     bool stop = false;
@@ -121,6 +128,62 @@ void move_program_counter() {
         NextPCReg, kernel->machine->ReadRegister(NextPCReg) + 4);
 }
 
+static int SelectTLBVictim() {
+    for (int i = 0; i < TLBSize; i++) {
+        if (!kernel->machine->tlb[i].valid) {
+            gTLBInvalidFillCount++;   
+            return i;
+        }
+    }
+
+    int victim = nextTLBSlot;
+    nextTLBSlot = (nextTLBSlot + 1) % TLBSize;
+
+    gTLBReplaceCount++;   
+    return victim;
+}
+static void SaveBackTLBEntry(AddrSpace *space, TranslationEntry &entry) {
+    if (!entry.valid || space == NULL) return;
+
+    TranslationEntry *pte = space->FindPTE(entry.virtualPage);
+
+    if (pte != NULL) {
+        pte->use |= entry.use;
+        pte->dirty |= entry.dirty;
+
+        gTLBSaveBackCount++;   
+    }
+}
+
+static bool HandleTLBMiss() {
+#ifdef USE_TLB
+    gTLBMissCount++; 
+    AddrSpace *space = kernel->currentThread->space;
+    if (space == NULL) return false;
+
+    int badVAddr = kernel->machine->ReadRegister(BadVAddrReg);
+    int vpn = (unsigned int)badVAddr / PageSize;
+
+    TranslationEntry *pte = space->FindPTE(vpn);
+
+    // invalid access → real fault
+    if (pte == NULL || !pte->valid) {
+        return false;
+    }
+
+    int victim = SelectTLBVictim();
+
+    SaveBackTLBEntry(space, kernel->machine->tlb[victim]);
+
+    kernel->machine->tlb[victim] = *pte;
+    kernel->machine->tlb[victim].valid = TRUE;
+
+    return true;
+#else
+    return false;
+#endif
+}
+
 /**
  * Handle not implemented syscall
  * This method will write the syscall to debug log and increase
@@ -131,9 +194,23 @@ void handle_not_implemented_SC(int type) {
     return move_program_counter();
 }
 
+// void handle_SC_Halt() {
+//     DEBUG(dbgSys, "Shutdown, initiated by user program.\n");
+//     SysHalt();
+//     ASSERTNOTREACHED();
+// }
 void handle_SC_Halt() {
     DEBUG(dbgSys, "Shutdown, initiated by user program.\n");
-    SysHalt();
+
+    // ✅ ADD YOUR PRINTS HERE
+    cout << "\n===== TLB STATS =====\n";
+    cout << "TLB Misses: " << gTLBMissCount << endl;
+    cout << "Replacements: " << gTLBReplaceCount << endl;
+    cout << "Invalid fills: " << gTLBInvalidFillCount << endl;
+    cout << "Savebacks: " << gTLBSaveBackCount << endl;
+
+    SysHalt();   // machine stops here
+
     ASSERTNOTREACHED();
 }
 
@@ -420,6 +497,14 @@ void ExceptionHandler(ExceptionType which) {
             DEBUG(dbgSys, "Switch to system mode\n");
             break;
         case PageFaultException:
+            if (HandleTLBMiss()) {
+                return;   // IMPORTANT: retry instruction
+            }
+
+            cerr << "Page fault at address "<< kernel->machine->ReadRegister(BadVAddrReg) << "\n";
+
+            SysHalt();
+            ASSERTNOTREACHED();   
         case ReadOnlyException:
         case BusErrorException:
         case AddressErrorException:

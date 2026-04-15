@@ -62,5 +62,10 @@ int main() {
         }
     }
 
+    #ifndef UNIX
+    Halt();     
+    #else
     Exit(0);
+    #endif
+    
 }
