@@ -56,6 +56,7 @@
 #define SC_ExecP     60
 #define SC_ReadInt   61
 #define SC_GetPD     62
+#define SC_GetPageFaults 63
 
 #ifndef IN_ASM
 
@@ -80,6 +81,7 @@ int Add(int op1, int op2);
 int Abs(int op1);
 int ReadNum();
 void Sleep(int time);
+int GetPageFaults();
 
 void PrintNum(int num);
 int GetPD();
