@@ -67,6 +67,26 @@ int PTable::ExecUpdate(char* name) {
     // Trả về kết quả thực thi của PCB->Exec.
     return pid;
 }
+int PTable::ExecUpdate(char* name, int pDes) {
+    bmsem->P();
+    if (name == NULL || strcmp(name, kernel->currentThread->getName()) == 0) {
+        bmsem->V();
+        return -1;
+    }
+    int index = this->GetFreeSlot();
+    if (index < 0) {
+        bmsem->V();
+        return -1;
+    }
+    pcb[index] = new PCB(index);
+    pcb[index]->SetFileName(name);
+    kernel->fileSystem->Renew(index);
+    pcb[index]->parentID = kernel->currentThread->processID;
+    
+    int pid = pcb[index]->Exec(name, index, pDes);
+    bmsem->V();
+    return pid;
+}
 
 int PTable::ExitUpdate(int exitcode) {
     // Nếu tiến trình gọi là main process thì gọi Halt().
